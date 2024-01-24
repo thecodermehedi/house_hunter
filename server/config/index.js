@@ -9,6 +9,7 @@ const config = {
   corsOrigin: process.env.CORS_ORIGIN,
   corsLocal: process.env.CORS_LOCAL,
   clusterName: process.env.CLUSTER_NAME,
+  jwtSecret: process.env.JWT_SECRET
 }
 
 module.exports = config;
