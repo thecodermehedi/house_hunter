@@ -4,6 +4,7 @@ const applyMiddleware = require("./middlewares");
 const app = express();
 const geocodeRouter = require("./routes/geocodes");
 const userRouter = require("./routes/users");
+const tokenRouter = require("./routes/token");
 const connectToDb = require("./database");
 const {port} = require("./config");
 
@@ -13,6 +14,7 @@ applyMiddleware(app);
 // Routes
 app.use(geocodeRouter);
 app.use(userRouter);
+app.use(tokenRouter);
 
 // Server
 const runServer = async () => {
