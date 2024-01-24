@@ -80,3 +80,15 @@
 body {
   font-family: "Poppins", sans-serif;
 }
+
+body::-webkit-scrollbar {
+  width: 0;
+}
+
+body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+body::-webkit-scrollbar-thumb {
+  background-color: transparent;
+}
