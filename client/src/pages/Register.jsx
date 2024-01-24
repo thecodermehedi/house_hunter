@@ -1,6 +1,6 @@
-import toast from "react-hot-toast";
+// import toast from "react-hot-toast";
 import {Link, useNavigate} from "react-router-dom";
-import {useForm} from "react-hook-form";
+import {useForm, Controller} from "react-hook-form";
 import {useState} from "react";
 import {
   Select,
@@ -10,30 +10,42 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {useQuery} from "@tanstack/react-query";
-import axios from "axios";
+import axiosPublic from "@/api";
+import useAuth from "@/hooks/useAuth";
 
 const Register = () => {
-  const [isPasswordHidden, setPasswordHidden] = useState(true);
   const navigate = useNavigate();
-  const {
-    register,
-    handleSubmit,
-    formState: {errors},
-    reset,
-  } = useForm();
-  const handleRegister = async (data) => {
-    console.log(data);
-  };
+  const [isPasswordHidden, setPasswordHidden] = useState(true);
+  const {register, handleSubmit, control, reset} = useForm();
+  const {loginUser} = useAuth();
 
-  const {data: geocode = []} = useQuery({
-    queryKey: ["geoCode"],
+  const {data: geocodes = []} = useQuery({
+    queryKey: ["geocodes"],
     queryFn: async () => {
-      const {data} = await axios(
-        "https://gist.githubusercontent.com/thecodermehedi/8c93d35953155f71475ddd88b2da0b07/raw/da3b3bf8e09f37671ab6cbbf9b6e393f0164d019/geocode.json"
-      );
+      const {data} = await axiosPublic("/geocodes");
       return data;
     },
   });
+
+  const handleRegistration = async (data) => {
+    const {name, email, phone, password, role, country} = data;
+    const countryObject = geocodes?.find((item) => item.code === country);
+    const newUser = {
+      name,
+      email,
+      phone: `${countryObject?.dial_code}${phone}`,
+      password,
+      role,
+    };
+    const {data: res} = await axiosPublic.post("/auth/register", newUser);
+    if (res.success) {
+      const {data: res} = await loginUser(email, password);
+      if (res.success) {
+        reset();
+        navigate("/dashboard");
+      }
+    }
+  };
 
   return (
     <main className="w-full min-h-screen flex flex-col items-center justify-center px-4 pb-10">
@@ -56,7 +68,7 @@ const Register = () => {
           </div>
         </div>
         <form
-          onSubmit={handleSubmit(handleRegister)}
+          onSubmit={handleSubmit(handleRegistration)}
           className="space-y-5 border border-gray-200 rounded-lg shadow-sm p-5"
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -74,21 +86,26 @@ const Register = () => {
             <div>
               <label className="font-medium">Phone Number</label>
               <div className="flex items-center">
-                <Select defaultValue="+880">
-                  <SelectTrigger className="w-fit mt-2 border border-r-0   text-black bg-white outline-none focus:bg-transparent shadow-sm">
-                    <SelectValue placeholder="Select Country" />
-                  </SelectTrigger>
-                  <SelectContent className="h-60">
-                    {geocode?.map((item, index) => {
-                      return (
-                        <SelectItem key={index} value={item.dial_code}>
-                          {`${item.flag} ${item.code} (${item.dial_code})`}
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-
+                <Controller
+                  name="country"
+                  control={control}
+                  defaultValue="BD"
+                  rules={{required: true}}
+                  render={({field}) => (
+                    <Select {...field}>
+                      <SelectTrigger className="w-fit mt-2 border border-r-0 text-black bg-white outline-none focus:bg-transparent shadow-sm">
+                        <SelectValue placeholder="Select Country" />
+                      </SelectTrigger>
+                      <SelectContent className="h-60">
+                        {geocodes?.map((item) => (
+                          <SelectItem key={item._id} value={item.code}>
+                            {`${item.flag} ${item.code} (${item.dial_code})`}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
                 <input
                   type="text"
                   id="phone"
@@ -168,15 +185,23 @@ const Register = () => {
             </div>
             <div className="col-span-2">
               <label className="font-medium">Role</label>
-              <Select defaultValue="renter">
-                <SelectTrigger className="w-full  mt-2 px-3 py-2  text-black bg-white outline-none border focus:bg-transparent shadow-sm selection:bg-white">
-                  <SelectValue placeholder="Select Role" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="owner">House Owner</SelectItem>
-                  <SelectItem value="renter">House Renter</SelectItem>
-                </SelectContent>
-              </Select>
+              <Controller
+                name="role"
+                control={control}
+                defaultValue="renter"
+                rules={{required: true}}
+                render={({field}) => (
+                  <Select defaultValue="renter">
+                    <SelectTrigger className="w-full  mt-2 px-3 py-2  text-black bg-white outline-none border focus:bg-transparent shadow-sm selection:bg-white">
+                      <SelectValue {...field} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="owner">House Owner</SelectItem>
+                      <SelectItem value="renter">House Renter</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              />
             </div>
           </div>
           <button
